@@ -90,7 +90,7 @@ app.get("/api/users/:_id/logs", (req, res, next) => {
   const { _id } = req.params;
   const { from, to, limit } = req.query;
 
-  if (from && to && limit) {
+  if (from && to) {
     UserModel.aggregate([
       {
         $match: {
@@ -125,7 +125,7 @@ app.get("/api/users/:_id/logs", (req, res, next) => {
         username: users[0].username,
         count: users[0].exercises.length,
         _id: users[0]._id,
-        log: users[0].exercises.slice(0, limit).map((exercise) => ({
+        log: users[0].exercises.map((exercise) => ({
           description: exercise.description,
           duration: exercise.duration,
           date: formatDate(exercise.date),
@@ -149,11 +149,13 @@ app.get("/api/users/:_id/logs", (req, res, next) => {
           username: user.username,
           count: user.exercises.length,
           _id,
-          log: user.exercises.map((exercise) => ({
-            description: exercise.description,
-            duration: exercise.duration,
-            date: formatDate(exercise.date),
-          })),
+          log: user.exercises
+            .slice(0, limit || user.exercises.length)
+            .map((exercise) => ({
+              description: exercise.description,
+              duration: exercise.duration,
+              date: formatDate(exercise.date),
+            })),
         });
       }
     );
