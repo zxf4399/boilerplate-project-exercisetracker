@@ -90,33 +90,74 @@ app.get("/api/users/:_id/logs", (req, res, next) => {
   const { _id } = req.params;
   const { from, to, limit } = req.query;
 
-  UserModel.find(
-    {
-      _id,
-    },
-    (error, users) => {
+  if (from && to && limit) {
+    UserModel.aggregate([
+      {
+        $match: {
+          _id: mongoose.Types.ObjectId(_id),
+        },
+      },
+      {
+        $project: {
+          exercises: {
+            $filter: {
+              input: "$exercises",
+              cond: {
+                $and: [
+                  {
+                    $gte: ["$$this.date", new Date(from)],
+                  },
+                  {
+                    $lte: ["$$this.date", new Date(to)],
+                  },
+                ],
+              },
+            },
+          },
+        },
+      },
+    ]).exec((error, users) => {
       if (error) {
         return next({ message: error });
       }
 
-      if (!users) {
-        return next({ message: "No user" });
-      }
-
-      const user = users[0];
-
       res.json({
-        username: user.username,
-        count: user.exercises.length,
-        _id,
-        log: user.exercises.map((exercise) => ({
+        username: users[0].username,
+        count: users[0].exercises.length,
+        _id: users[0]._id,
+        log: users[0].exercises.slice(0, limit).map((exercise) => ({
           description: exercise.description,
           duration: exercise.duration,
           date: formatDate(exercise.date),
         })),
       });
-    }
-  );
+    });
+  } else {
+    UserModel.find(
+      {
+        _id,
+      },
+      (error, users) => {
+        if (error) {
+          return next({ message: error });
+        }
+        if (!users) {
+          return next({ message: "No user" });
+        }
+        const user = users[0];
+        res.json({
+          username: user.username,
+          count: user.exercises.length,
+          _id,
+          log: user.exercises.map((exercise) => ({
+            description: exercise.description,
+            duration: exercise.duration,
+            date: formatDate(exercise.date),
+          })),
+        });
+      }
+    );
+  }
 });
 
 app.use((err, req, res, next) => {
