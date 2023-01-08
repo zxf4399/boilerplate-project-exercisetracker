@@ -93,12 +93,7 @@ app.get("/api/users/:_id/logs", (req, res, next) => {
   UserModel.find(
     {
       _id,
-      "exercises.date": {
-        $gte: new Date(from),
-      },
     },
-    null,
-    { limit },
     (error, users) => {
       if (error) {
         return next({ message: error });
